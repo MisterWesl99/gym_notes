@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Gym Notes</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="dialog_remove_confirmation">Remove %s?</string>
+    <string name="settings">Settings</string>
+    <string name="addCategory">Add another category</string>
+    <string name="rmCategory">Remove category</string>
+
+
+</resources>
