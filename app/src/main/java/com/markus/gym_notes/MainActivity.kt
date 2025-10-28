@@ -22,6 +22,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.markus.gym_notes.databinding.ActivityMainBinding
+import android.util.Log
+import android.widget.Button
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,7 +36,34 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fab: FloatingActionButton
     private lateinit var itemAdapter: ArrayAdapter<String>
     private val categories = mutableListOf<Category>()
+    private val db by lazy {AppDatabase.getInstance(applicationContext)}
 
+
+    private fun addNewExercise(categoryId: Int, name: String, weight: Double, description: String, weightHistory: ArrayList<Double>) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val newExercise = Exercise(
+                categoryId = categoryId,
+                name = name,
+                weight = weight,
+                description = description,
+                weightHistory = weightHistory
+            )
+            db.exerciseDao().insert(newExercise)
+            Log.d("MainActivity", "New exercise added: $name")
+        }
+    }
+
+    private fun addNewCategory(categoryName: String, categoryDescription: String) {
+        // lifecycleScope runs this in a coroutine
+        // Dispatchers.IO is the thread pool optimized for disk/network operations
+        lifecycleScope.launch(Dispatchers.IO) {
+            val newCategory = Category(name = categoryName, description = categoryDescription)
+            db.categoryDao().insert(newCategory)
+
+            // You can't update UI from here, but you can log
+            Log.d("MainActivity", "New category added: $categoryName")
+        }
+    }
 
     private fun showAddCategoryDialog() {
         // 1. Create an alert dialog builder
@@ -67,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         builder.setPositiveButton("Add") { dialog, _ ->
             val newCategory = Category(name=input.text.toString().trim(), description = "d")
             //newCategory.name = input.text.toString().trim()
-
+            addNewCategory(input.text.toString().trim(), categoryDescription = input.text.toString().trim())
             // Add to the list ONLY if the text is not empty
             if (!newCategory.name.isNullOrBlank()) {
                 categories.add(newCategory)
@@ -233,10 +265,11 @@ class MainActivity : AppCompatActivity() {
             // 5. Buttons konfigurieren
             builder.setPositiveButton("ADD") { dialog, which ->
                 val selectedCategory = spinner.selectedItem.toString()
-                val exerciseName = input.text.toString()
+                val temp = arrayListOf<Double>()
+                val newExercise = Exercise(name=input.text.toString().trim(), description = "d", weight = 0.0, weightHistory = temp, categoryId = 1)
                 // --- Entscheide, wie du die Daten verwenden willst ---
                 // Beispiel 2: Kategorie und Namen kombiniert hinzufügen
-                ArmsList.add("$selectedCategory: $exerciseName")
+                ArmsList.add("${selectedCategory.name}: ${newExercise.name}")
 
                 ArmsList.sort()
 
@@ -244,7 +277,7 @@ class MainActivity : AppCompatActivity() {
                 // Beispiel 3: Separat übergeben (wenn ArmsList das unterstützt)
                 // ArmsList.add(category = selectedCategory, name = exerciseName)
 
-                println("Selected: $selectedCategory, Input: $exerciseName") // Zum Debuggen
+                println("Selected: $selectedCategory.name, Input: $newExercise.name") // Zum Debuggen
             }
 
             builder.setNegativeButton("CANCEL") { dialog, which ->
