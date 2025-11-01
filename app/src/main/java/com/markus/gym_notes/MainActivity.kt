@@ -37,7 +37,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var itemAdapter: ArrayAdapter<String>
     private val categories = mutableListOf<Category>()
     private val db by lazy {AppDatabase.getInstance(applicationContext)}
-
+    //private lateinit var categoryAdapter:
+    private var currentCategories: List<Category> = emptyList()
 
     private fun addNewExercise(categoryId: Int, name: String, weight: Double, description: String, weightHistory: ArrayList<Double>) {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -59,9 +60,24 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             val newCategory = Category(name = categoryName, description = categoryDescription)
             db.categoryDao().insert(newCategory)
-
             // You can't update UI from here, but you can log
-            Log.d("MainActivity", "New category added: $categoryName")
+            Log.d("MainActivity", "Category deleted: $categoryName")
+        }
+    }
+
+    private fun rmCategory(category: Category) {
+        // lifecycleScope runs this in a coroutine
+        // Dispatchers.IO is the thread pool optimized for disk/network operations
+        lifecycleScope.launch(Dispatchers.IO) {
+            db.categoryDao().delete(category)
+            // You can't update UI from here, but you can log
+            Log.d("MainActivity", "New category added: ${category.name}")
+        }
+    }
+
+    private fun getCategories() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            db.categoryDao().getCategories()
         }
     }
 
@@ -97,26 +113,21 @@ class MainActivity : AppCompatActivity() {
 
         // 3. Set up the dialog buttons
         builder.setPositiveButton("Add") { dialog, _ ->
-            val newCategory = Category(name=input.text.toString().trim(), description = "d")
-            //newCategory.name = input.text.toString().trim()
-            addNewCategory(input.text.toString().trim(), categoryDescription = input.text.toString().trim())
-            // Add to the list ONLY if the text is not empty
-            if (!newCategory.name.isNullOrBlank()) {
-                categories.add(newCategory)
-                categories.sortBy{it.name}
-                Toast.makeText(this, "'$newCategory' added", Toast.LENGTH_SHORT).show()
+            val categoryName = input.text.toString().trim()
 
-                // IMPORTANT: Notify your adapter that the data has changed
-                itemAdapter.notifyDataSetChanged()
+            // Add to the list ONLY if the text is not empty
+            if (!categoryName.isNullOrBlank()) {
+                addNewCategory(categoryName, categoryDescription = input.text.toString().trim())
+                Toast.makeText(this, "'$categoryName' added", Toast.LENGTH_SHORT).show()
+
+                dialog.dismiss()
             } else {
-                Toast.makeText(this, "Region name cannot be empty", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Category name cannot be empty", Toast.LENGTH_SHORT).show()
             }
         }
-
         builder.setNegativeButton("Cancel") { dialog, _ ->
             dialog.cancel()
         }
-
         // 4. Create and show the dialog
         builder.show()
     }
@@ -126,11 +137,12 @@ class MainActivity : AppCompatActivity() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Remove category")
 
-        // 2. Convert your list to an array to display in the dialog
-        val listItems = ArmsList.toTypedArray()
+
+        val list = arrayListOf<Category>()
+        list = db.categoryDao().getCategories()
 
         // 3. Set the list items and handle the click event for deletion
-        builder.setItems(listItems) { dialog, which ->
+        builder.setItems(list) { dialog, which ->
             // 'which' is the index of the item that was clicked
             val itemToRemove = ArmsList[which]
 

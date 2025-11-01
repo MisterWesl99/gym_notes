@@ -10,6 +10,9 @@ interface ExerciseDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(exercise: Exercise)
 
+    @Delete
+    suspend fun delete(exercise: Exercise)
+
     /**
      * This query gets all exercises and automatically fetches their
      * related category.
