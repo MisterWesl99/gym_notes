@@ -167,6 +167,101 @@ class MainActivity : AppCompatActivity() {
         builder.create().show()
     }
 
+    private fun showSelectCategoryDialog() {
+        // 1. Create a variable to store the checked item's position
+        var selectedCategoryIndex = 0
+
+        // 2. Create the array of names to display
+        val categoryNames = currentCategories.map{it.name}.toTypedArray()
+
+        // 3. Build the dialog
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Choose a category")
+
+        // 4. Set the items. When clicked, it updates 'selectedCategoryIndex'
+        builder.setSingleChoiceItems(categoryNames, 0) { dialog, which ->
+            // 'which' is the new position the user clicked
+            selectedCategoryIndex = which
+        }
+
+        // 5. Set the "OK" button to *use* the selected index
+        builder.setPositiveButton("OK") { dialog, _ ->
+            // Use the index to get the full Category object
+            val selectedCategory = currentCategories[selectedCategoryIndex]
+
+            // NOW you have the ID!
+            val categoryId = selectedCategory.id
+
+            // You can now use this ID, for example,
+            // to show an "Add Exercise" dialog
+            Log.d("MainActivity", "The selected Category ID is: $categoryId")
+
+            showAddExerciseDialog(categoryId)
+        }
+
+        // 6. Add a "Cancel" button
+        builder.setNegativeButton("Cancel") { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        // 7. Show the dialog
+        builder.create().show()
+    }
+
+    private fun showAddExerciseDialog(categoryId: Int) {
+        // 1. Create an alert dialog builder
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Add new exercise")
+
+        // 2. Set up the input field (EditText)
+        val input = EditText(this)
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        input.hint = "Write exercise here"
+        input.setTextAppearance(R.style.DialogEditTextStyle)
+
+        val whiteColorStateList =
+            ColorStateList.valueOf(Color.WHITE) // Besser lesbar auf weißem Hintergrund
+        input.backgroundTintList = whiteColorStateList
+        input.setTextColor(Color.WHITE) // Textfarbe setzen
+        input.setHintTextColor(Color.LTGRAY) // Hinweis-Textfarbe setzen
+
+        // Set padding for the EditText
+        val container = FrameLayout(this)
+        val params = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        // Add horizontal and vertical margins
+        params.leftMargin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        params.rightMargin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        input.layoutParams = params
+        container.addView(input)
+
+        builder.setView(container) // Set the container view with the EditText
+
+        // 3. Set up the dialog buttons
+        builder.setPositiveButton("Add") { dialog, _ ->
+
+            val exerciseName = input.text.toString().trim()
+            val weightHistory = arrayListOf<Double>()
+
+            // Add to the list ONLY if the text is not empty
+            if (!exerciseName.isNullOrBlank()) {
+                addNewExercise(categoryId, exerciseName, 0.0, description = input.text.toString().trim(), weightHistory)
+                Toast.makeText(this, "'$exerciseName' added", Toast.LENGTH_SHORT).show()
+
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "Exercise name cannot be empty", Toast.LENGTH_SHORT).show()
+            }
+        }
+        builder.setNegativeButton("Cancel") { dialog, _ ->
+            dialog.cancel()
+        }
+        // 4. Create and show the dialog
+        builder.show()
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -284,26 +379,7 @@ class MainActivity : AppCompatActivity() {
 
             // 5. Buttons konfigurieren
             builder.setPositiveButton("ADD") { dialog, which ->
-                val selectedCategory = spinner.selectedItem.toString()
-                val temp = arrayListOf<Double>()
-                val newExercise = Exercise(
-                    name = input.text.toString().trim(),
-                    description = "d",
-                    weight = 0.0,
-                    weightHistory = temp,
-                    categoryId = 1
-                )
-                // --- Entscheide, wie du die Daten verwenden willst ---
-                // Beispiel 2: Kategorie und Namen kombiniert hinzufügen
-                categories.add("${selectedCategory.name}: ${newExercise.name}")
-
-                categories.sort()
-
-                itemAdapter.notifyDataSetChanged()
-                // Beispiel 3: Separat übergeben (wenn ArmsList das unterstützt)
-                // ArmsList.add(category = selectedCategory, name = exerciseName)
-
-                println("Selected: $selectedCategory.name, Input: $newExercise.name") // Zum Debuggen
+                showSelectCategoryDialog()
             }
 
             builder.setNegativeButton("CANCEL") { dialog, which ->
