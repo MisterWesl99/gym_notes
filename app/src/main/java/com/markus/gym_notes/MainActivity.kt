@@ -208,46 +208,78 @@ class MainActivity : AppCompatActivity() {
         builder.create().show()
     }
 
+    private fun createStyledEditText(hint: String, isNumber: Boolean = false): EditText {
+        val editText = EditText(this)
+        editText.hint = hint
+
+        // Set Input Type (Text vs Number)
+        if (isNumber) {
+            editText.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        } else {
+            editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+
+        // Styling
+        editText.setTextAppearance(R.style.DialogEditTextStyle)
+        editText.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+        editText.setTextColor(Color.WHITE)
+        editText.setHintTextColor(Color.LTGRAY)
+
+        // Layout Params (Margins)
+        val params = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        params.topMargin = 30 // Space between inputs
+        editText.layoutParams = params
+
+        return editText
+    }
+
     private fun showAddExerciseDialog(categoryId: Int) {
         // 1. Create an alert dialog builder
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Add new exercise")
 
-        // 2. Set up the input field (EditText)
-        val input = EditText(this)
-        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        input.hint = "Write exercise here"
-        input.setTextAppearance(R.style.DialogEditTextStyle)
+        val container = LinearLayout(this)
+        container.orientation = LinearLayout.VERTICAL
 
-        val whiteColorStateList =
-            ColorStateList.valueOf(Color.WHITE) // Besser lesbar auf weißem Hintergrund
-        input.backgroundTintList = whiteColorStateList
-        input.setTextColor(Color.WHITE) // Textfarbe setzen
-        input.setHintTextColor(Color.LTGRAY) // Hinweis-Textfarbe setzen
-
-        // Set padding for the EditText
-        val container = FrameLayout(this)
-        val params = FrameLayout.LayoutParams(
+        // Give it some padding
+        val containerParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-        // Add horizontal and vertical margins
-        params.leftMargin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
-        params.rightMargin = resources.getDimensionPixelSize(R.dimen.dialog_margin)
-        input.layoutParams = params
-        container.addView(input)
+        // Convert dimen to pixels
+        val marginSize = resources.getDimensionPixelSize(R.dimen.dialog_margin)
+        containerParams.setMargins(marginSize, 0, marginSize, 0) // Add margins
+        container.layoutParams = containerParams
+        container.setPadding(marginSize, marginSize, marginSize, marginSize) // Add internal padding
+
+        val inputName = createStyledEditText("Exercise name", false)
+        val inputWeight = createStyledEditText("Weight", true)
+        val inputDescription = createStyledEditText("Description", false)
+
+        container.addView(inputName)
+        container.addView(inputWeight)
+        container.addView(inputDescription)
 
         builder.setView(container) // Set the container view with the EditText
 
         // 3. Set up the dialog buttons
         builder.setPositiveButton("Add") { dialog, _ ->
 
-            val exerciseName = input.text.toString().trim()
-            val weightHistory = arrayListOf<Double>()
+            val exerciseName = inputName.text.toString().trim()
+            val weightText = inputWeight.text.toString().trim()
+            val exerciseDes = inputDescription.text.toString().trim()
 
             // Add to the list ONLY if the text is not empty
             if (!exerciseName.isNullOrBlank()) {
-                addNewExercise(categoryId, exerciseName, 0.0, description = input.text.toString().trim(), weightHistory)
+
+                val weight = weightText.toDoubleOrNull() ?: 0.0
+                val weightHistory = arrayListOf<Double>()
+
+                addNewExercise(categoryId, exerciseName, weight, exerciseDes, weightHistory)
+
                 Toast.makeText(this, "'$exerciseName' added", Toast.LENGTH_SHORT).show()
 
                 dialog.dismiss()
